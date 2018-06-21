@@ -1,4 +1,7 @@
-const START = '0';
-const ENTER_NAME = '1';
-const ENTER_EXPENSES = '2';
-const CALCULATION = '3';
+module.exports = {
+  START: '0',
+  ENTER_NAME: '1',
+  ENTER_EXPENSES: '2',
+  CALCULATION: '3'
+};
+
