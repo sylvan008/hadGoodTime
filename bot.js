@@ -18,6 +18,120 @@ const resetHandler = async (chatId, coffer) => {
   bot.sendMessage(chatId, "Начнём считать с начала. Введите имя.");
 };
 
+const calculate = async (chatId) => {
+  const coffer = await db.getCoffer(chatId);
+  let clients = coffer.clients;
+
+  const totalExpenses = clients.reduce((total, client) => {
+    return total + Number.parseFloat(client.expenses);
+  }, 0);
+
+  const arithmeticAverage = Math.floor(totalExpenses / clients.length);
+
+  const delta = totalExpenses - arithmeticAverage * clients.length;
+
+  clients = findClientsDelta(clients);
+
+  clients = findClientWithMinimumDelta(clients);
+
+  const message = divideExpenses(clients);
+
+  coffer.state = state.CALCULATION;
+  coffer.result = message;
+
+  await db.putCoffer(chatId, coffer);
+
+  bot.sendMessage(chatId, message);
+
+  /**
+   *
+   * @param clients{Object}
+   * @returns {Array}
+   */
+  function findClientsDelta(clients) {
+    return clients.map(item => {
+      item.delta = arithmeticAverage - item.expenses;
+      return item;
+    });
+  }
+
+  /**
+   *
+   * @param clients{Object}
+   * @returns {Object}
+   */
+  function findClientWithMinimumDelta(clients) {
+    let idx = 0;
+    let maxDelta = clients[ idx ].delta;
+
+    clients.forEach((client, index) => {
+      if (client.delta > maxDelta) {
+        idx = index;
+        maxDelta = client.delta;
+      }
+    });
+    clients[idx].delta += delta;
+
+    return clients;
+  }
+
+  /**
+   *
+   * @param clients{Object}
+   * @returns message{string}
+   */
+  function divideExpenses(clients) {
+    let message = '';
+
+    // метод проверяет, закончен ли взаиморасчет
+    const isFinished = function() {
+      let finished = true;
+
+      clients.forEach(function(client) {
+        if (client.delta !== 0)
+          finished = false;
+      });
+
+      return finished;
+    };
+
+// в цикле распределяем затраченные средства
+    while (!isFinished()) {
+      let idx = 0;
+      let minPositiveDelta = clients[idx].delta;
+
+      clients.forEach(function(client, index) {
+        if (client.delta > 0 && client.delta > minPositiveDelta) {
+          idx = index;
+          minPositiveDelta = client.delta;
+        }
+      });
+
+      // отбираем того, у кого самый маленький долг
+      let payer = clients[idx];
+
+      // раскидываем долг тем, кто переплатил
+      for (let i = 0; i < clients.length; i++) {
+        let recipient = clients[i];
+
+        if (recipient.delta < 0 && payer.delta > 0) {
+          let payment = Math.min(Math.abs(recipient.delta), payer.delta);
+
+          recipient.delta += payment;
+          payer.delta -= payment;
+
+          message += payer.name + " -> " + recipient.name + "  $ " + payment + "\n";
+
+          // логируем платеж
+          console.log(payer.name + " -> " + recipient.name + "  $ " + payment);
+        }
+      }
+    }
+
+    return message;
+  }
+};
+
 const messageHandler = async (chatId, text, coffer) => {
   coffer = await db.getCoffer(chatId);
 
@@ -54,10 +168,10 @@ bot.on('message', (msg) => {
 
   /**
    *
-   * @type {{state: number, name: string, expenses: string, clients: Array}}
+   * @type {{state: string, name: string, expenses: string, clients: Array}}
    */
   let coffer = {
-    state: 0,
+    state: '0',
     name: '',
     expenses: '',
     clients: []
@@ -82,7 +196,10 @@ bot.on('message', (msg) => {
     } else if (args[0] === '/reset') {
       resetHandler(chatId, coffer);
 
-    } else {
+    } else if (args[0] === '/calculate') {
+      calculate(chatId);
+    }
+    else {
       messageHandler(chatId, text, coffer);
     }
   }
