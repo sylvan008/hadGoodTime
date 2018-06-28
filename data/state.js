@@ -4,4 +4,3 @@ module.exports = {
   ENTER_EXPENSES: '2',
   CALCULATION: '3'
 };
-
