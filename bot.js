@@ -1,6 +1,6 @@
 const Bot = require('node-telegram-bot-api');
-const db = require('./levelDb');
-const state = require('./state');
+const db = require('./data/levelDb');
+const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
 
@@ -9,16 +9,16 @@ let bot = new Bot(token, { polling: true });
 const startHandler = async (chatId, coffer) => {
   coffer.state = state.ENTER_NAME;
   await db.putCoffer(chatId, coffer);
-  bot.sendMessage(chatId, "Давайте посчитаем вклад каждого в общий котёл. Введите имя.");
+  bot.sendMessage(chatId, "Давайте составим список кто, сколько потратил денег. Введите имя.");
 };
 
 const resetHandler = async (chatId, coffer) => {
   coffer.state = state.ENTER_NAME;
   await db.putCoffer(chatId, coffer);
-  bot.sendMessage(chatId, "Начнём считать с начала. Введите имя.");
+  bot.sendMessage(chatId, "Начнём считать сначала. Введите имя.");
 };
 
-const calculate = async (chatId) => {
+const finishHandler = async (chatId) => {
   const coffer = await db.getCoffer(chatId);
   let clients = coffer.clients;
 
@@ -138,8 +138,8 @@ const messageHandler = async (chatId, text, coffer) => {
   if (coffer.state === state.ENTER_NAME) {
     coffer.name = text;
     coffer.state = state.ENTER_EXPENSES;
-    bot.sendMessage(chatId, "Отлично! Сколько внёс " + coffer.name + "?");
     await db.putCoffer(chatId, coffer);
+    bot.sendMessage(chatId, "Сколько внес(-ла) " + coffer.name + "?");
     return;
   }
 
@@ -152,7 +152,7 @@ const messageHandler = async (chatId, text, coffer) => {
     coffer.clients.push({name: coffer.name, expenses: coffer.expenses});
     coffer.state = state.ENTER_NAME;
     await db.putCoffer(chatId, coffer);
-    await bot.sendMessage(chatId, "Так и запишем: " + coffer.name + " внёс " + coffer.expenses +
+    await bot.sendMessage(chatId, "Запишем: " + coffer.name + " внес(-ла) " + coffer.expenses +
       "\n Кто далее по списку?");
   }
 };
@@ -196,8 +196,8 @@ bot.on('message', (msg) => {
     } else if (args[0] === '/reset') {
       resetHandler(chatId, coffer);
 
-    } else if (args[0] === '/calculate') {
-      calculate(chatId);
+    } else if (args[0] === '/finish') {
+      finishHandler(chatId);
     }
     else {
       messageHandler(chatId, text, coffer);
