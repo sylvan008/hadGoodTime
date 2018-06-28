@@ -1,5 +1,5 @@
 {
-  "name": "gdgCensorBot",
+  "name": "hadGoodTime",
   "description": "",
   "scripts": {
   },
@@ -12,8 +12,7 @@
     },
     "HEROKU_URL": {
       "required": true
-    },
-
+    }
   },
   "formation": {
   },
