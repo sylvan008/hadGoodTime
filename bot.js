@@ -6,10 +6,16 @@ const token = process.env.BOT_ACCESS_TOKEN;
 
 let bot = new Bot(token, { polling: true });
 
-const startHandler = async (chatId, coffer) => {
-  coffer.state = state.ENTER_NAME;
-  await db.putCoffer(chatId, coffer);
-  bot.sendMessage(chatId, "Давайте составим список кто, сколько потратил денег. Введите имя.");
+const startHandler = async (chatId) => {
+  const options = {
+    reply_markup: JSON.stringify({
+      inline_keyboard: [
+        [{text: "Новый расчёт", callback_data: "new_calculation"}]
+      ]
+    })
+  };
+
+  bot.sendMessage(chatId, "Привет! Это хорошо посидели бот :)", options);
 };
 
 const resetHandler = async (chatId, coffer) => {
@@ -132,14 +138,14 @@ const finishHandler = async (chatId) => {
   }
 };
 
-const messageHandler = async (chatId, text, coffer) => {
-  coffer = await db.getCoffer(chatId);
+const messageHandler = async (chatId, text) => {
+  const coffer = await db.getCoffer(chatId);
 
   if (coffer.state === state.ENTER_NAME) {
     coffer.name = text;
     coffer.state = state.ENTER_EXPENSES;
     await db.putCoffer(chatId, coffer);
-    bot.sendMessage(chatId, "Сколько внес(-ла) " + coffer.name + "?");
+    bot.sendMessage(chatId, "Сколько денег потратил?");
     return;
   }
 
@@ -202,6 +208,23 @@ bot.on('message', (msg) => {
     else {
       messageHandler(chatId, text, coffer);
     }
+  }
+});
+
+bot.on('callback_query', async (msg) => {
+  let coffer = {
+    state: '0',
+    name: '',
+    expenses: '',
+    clients: []
+  };
+
+  const chatId = msg.chat.id;
+
+  if (msg.data === 'new_calculation') {
+    coffer.state = state.ENTER_NAME;
+    await db.putCoffer(coffer);
+    bot.sendMessage(chatId, 'Введите имя первого участника');
   }
 });
 
