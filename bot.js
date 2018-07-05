@@ -4,9 +4,91 @@ const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
 
-let bot = new Bot(token, { polling: true });
+const bot = new Bot(token, { polling: true });
 
-const startHandler = async (chatId) => {
+console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
+
+// Listen for any kind of message. There are different kinds of
+// messages.
+bot.on('message', (msg) => {
+
+  console.log('\n📰  Received message:');
+  console.log('  ', msg.text || '(no text)');
+
+  /**
+   *
+   * @type {{state: string, name: string, expenses: string, clients: Array}}
+   */
+
+  if (msg.text) {
+    /**
+     * @type {string}
+     */
+    const text = msg.text;
+    const userId = msg.from.id;
+
+    let coffer = {
+      state: '0',
+      name: '',
+      expenses: '',
+      clients: []
+    };
+
+    /**
+     * @type {Array}
+     */
+    const args = text.split(" ");
+
+    if (args[0] === '/start') {
+      startHandler(userId);
+
+    } else if (args[0] === '/reset') {
+      resetHandler(userId, coffer);
+
+    } else if (args[0] === '/finish') {
+      finishHandler(userId);
+    }
+    else {
+      messageHandler(userId, text, coffer);
+    }
+  }
+});
+
+bot.on('callback_query', async (msg) => {
+  let coffer = {
+    state: '0',
+    name: '',
+    expenses: '',
+    clients: []
+  };
+
+  const text = msg.data;
+  const userId = msg.from.id;
+
+  if (text === 'new_calculation') {
+    coffer.state = state.ENTER_NAME;
+    await db.putCoffer(userId, coffer);
+    bot.sendMessage(userId, 'Введите имя первого участника');
+  }
+
+  if (text === 'resume') {
+    coffer = await db.getCoffer(userId);
+    coffer.state = state.ENTER_NAME;
+    await db.putCoffer(userId, coffer);
+
+    bot.sendMessage(userId, 'Введите имя следующего участника');
+  }
+
+  if (text === 'reset') {
+    startHandler(userId, coffer);
+  }
+
+  if (text === 'finish') {
+    finishHandler(userId);
+  }
+});
+
+async function startHandler(userId) {
   const options = {
     reply_markup: JSON.stringify({
       inline_keyboard: [
@@ -15,17 +97,17 @@ const startHandler = async (chatId) => {
     })
   };
 
-  bot.sendMessage(chatId, "Привет! Это хорошо посидели бот :)", options);
-};
+  bot.sendMessage(userId, "Привет! Это хорошо посидели бот :)", options);
+}
 
-const resetHandler = async (chatId, coffer) => {
-  coffer.state = state.ENTER_NAME;
-  await db.putCoffer(chatId, coffer);
-  bot.sendMessage(chatId, "Начнём считать сначала. Введите имя.");
-};
+async function resetHandler(userId, coffer) {
+  coffer.state = state.START;
+  await db.putCoffer(userId, coffer);
+  startHandler(userId);
+}
 
-const finishHandler = async (chatId) => {
-  const coffer = await db.getCoffer(chatId);
+async function finishHandler(userId) {
+  const coffer = await db.getCoffer(userId);
   let clients = coffer.clients;
 
   const totalExpenses = clients.reduce((total, client) => {
@@ -45,9 +127,9 @@ const finishHandler = async (chatId) => {
   coffer.state = state.CALCULATION;
   coffer.result = message;
 
-  await db.putCoffer(chatId, coffer);
+  await db.putCoffer(userId, coffer);
 
-  bot.sendMessage(chatId, message);
+  bot.sendMessage(userId, message);
 
   /**
    *
@@ -136,96 +218,64 @@ const finishHandler = async (chatId) => {
 
     return message;
   }
-};
+}
 
-const messageHandler = async (chatId, text) => {
-  const coffer = await db.getCoffer(chatId);
+async function messageHandler(userId, text) {
+  const coffer = await db.getCoffer(userId);
 
   if (coffer.state === state.ENTER_NAME) {
     coffer.name = text;
     coffer.state = state.ENTER_EXPENSES;
-    await db.putCoffer(chatId, coffer);
-    bot.sendMessage(chatId, "Сколько денег потратил?");
+    await db.putCoffer(userId, coffer);
+    bot.sendMessage(userId, "Сколько денег потратил?");
     return;
   }
 
   if (coffer.state === state.ENTER_EXPENSES) {
     if (isNaN(text) || text < 0) {
-      bot.sendMessage(chatId, "Число некорректно или меньше нуля.");
+      bot.sendMessage(userId, "Число некорректно или меньше нуля.");
       return;
     }
+
+    const options = {
+      reply_markup: JSON.stringify({
+        inline_keyboard: [
+          [ { text: "Добавить ещё", callback_data: "resume" } ],
+          [ { text: "Расчет", callback_data: "finish" } ],
+          [ { text: "Сброс", callback_data: "reset" } ]
+        ]
+      })
+    };
+
     coffer.expenses = text;
     coffer.clients.push({name: coffer.name, expenses: coffer.expenses});
-    coffer.state = state.ENTER_NAME;
-    await db.putCoffer(chatId, coffer);
-    await bot.sendMessage(chatId, "Запишем: " + coffer.name + " внес(-ла) " + coffer.expenses +
-      "\n Кто далее по списку?");
-  }
-};
 
-console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
+    let message = '';
 
-// Listen for any kind of message. There are different kinds of
-// messages.
-bot.on('message', (msg) => {
+    if (coffer.clients.length > 1) {
+      coffer.state = state.INTERMEDIATE;
+      await db.putCoffer(userId, coffer);
+      message = createMessage();
 
-  console.log('\n📰  Received message:');
-  console.log('  ', msg.text || '(no text)');
+      bot.sendMessage(userId, message, options);
+    } else {
+      coffer.state = state.ENTER_NAME;
+      await db.putCoffer(userId, coffer);
+      message = 'Введите имя второго участника';
 
-  /**
-   *
-   * @type {{state: string, name: string, expenses: string, clients: Array}}
-   */
-  let coffer = {
-    state: '0',
-    name: '',
-    expenses: '',
-    clients: []
-  };
-
-  if (msg.text) {
-    /**
-     * @type {string}
-     */
-    const text = msg.text;
-
-    /**
-     * @type {Array}
-     */
-    const args = text.split(" ");
-
-    const chatId = msg.chat.id;
-
-    if (args[0] === '/start') {
-      startHandler(chatId, coffer);
-
-    } else if (args[0] === '/reset') {
-      resetHandler(chatId, coffer);
-
-    } else if (args[0] === '/finish') {
-      finishHandler(chatId);
-    }
-    else {
-      messageHandler(chatId, text, coffer);
+      bot.sendMessage(userId, message);
     }
   }
-});
 
-bot.on('callback_query', async (msg) => {
-  let coffer = {
-    state: '0',
-    name: '',
-    expenses: '',
-    clients: []
-  };
+  function createMessage() {
+    let message = '';
 
-  const chatId = msg.chat.id;
+    coffer.clients.forEach(element => {
+      message += element.name + " потратил: " + element.expenses + "\n"
+    });
 
-  if (msg.data === 'new_calculation') {
-    coffer.state = state.ENTER_NAME;
-    await db.putCoffer(coffer);
-    bot.sendMessage(chatId, 'Введите имя первого участника');
+    return message;
   }
-});
+}
 
 module.exports = bot;
