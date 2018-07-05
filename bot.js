@@ -68,7 +68,8 @@ bot.on('callback_query', async (msg) => {
   if (text === 'new_calculation') {
     coffer.state = state.ENTER_NAME;
     await db.putCoffer(userId, coffer);
-    bot.sendMessage(userId, 'Введите имя первого участника');
+    await bot.sendMessage(userId, 'Введите имя первого участника');
+    bot.answerCallbackQuery(msg.id);
   }
 
   if (text === 'resume') {
@@ -77,14 +78,17 @@ bot.on('callback_query', async (msg) => {
     await db.putCoffer(userId, coffer);
 
     bot.sendMessage(userId, 'Введите имя следующего участника');
+    bot.answerCallbackQuery(msg.id);
   }
 
   if (text === 'reset') {
     startHandler(userId, coffer);
+    bot.answerCallbackQuery(msg.id);
   }
 
   if (text === 'finish') {
     finishHandler(userId);
+    bot.answerCallbackQuery(msg.id);
   }
 });
 
