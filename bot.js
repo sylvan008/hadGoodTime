@@ -4,7 +4,12 @@ const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
 
-const bot = new Bot(token, { polling: true });
+const bot = new Bot(token, {
+  webHook: {
+    port: process.env.PORT
+  }
+});
+bot.setWebHook('https://had-good-time.herokuapp.com/' + token);
 
 console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
 
