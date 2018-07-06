@@ -3,13 +3,10 @@ const db = require('./data/levelDb');
 const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
+const appurl = process.env.APP_URL;
 
-const bot = new Bot(token, {
-  webHook: {
-    port: 80
-  }
-});
-bot.setWebHook('https://had-good-time.herokuapp.com/' + token);
+const bot = new Bot(token);
+bot.setWebHook(appurl + token);
 
 console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
 
