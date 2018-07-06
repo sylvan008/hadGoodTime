@@ -6,7 +6,7 @@ const token = process.env.BOT_ACCESS_TOKEN;
 
 const bot = new Bot(token, {
   webHook: {
-    port: process.env.PORT
+    port: 80
   }
 });
 bot.setWebHook('https://had-good-time.herokuapp.com/' + token);
