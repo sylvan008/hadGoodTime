@@ -254,9 +254,9 @@ async function messageHandler(userId, text) {
     const options = {
       reply_markup: JSON.stringify({
         inline_keyboard: [
-          [ { text: "Добавить ещё", callback_data: "resume" } ],
-          [ { text: "Расчет", callback_data: "finish" } ],
-          [ { text: "Сброс", callback_data: "reset" } ]
+          [ { text: "👤Добавить ещё", callback_data: "resume" } ],
+          [ { text: "💰Расчет", callback_data: "finish" } ],
+          [ { text: "❌Сброс", callback_data: "reset" } ]
         ]
       })
     };
