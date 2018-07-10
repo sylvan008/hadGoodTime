@@ -3,10 +3,18 @@ const db = require('./data/levelDb');
 const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
+const isProduction = process.env.NODE_ENV === 'production';
 const appurl = process.env.APP_URL;
 
-const bot = new Bot(token);
-bot.setWebHook(appurl + token);
+let bot;
+
+if (isProduction) {
+    bot = new Bot(token);
+    bot.setWebHook(appurl + token);
+} else {
+    bot = new Bot(token, { polling: true });
+    bot.deleteWebHook();
+}
 
 console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
 
