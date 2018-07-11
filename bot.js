@@ -3,10 +3,18 @@ const db = require('./data/levelDb');
 const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
+const isProduction = process.env.NODE_ENV === 'production';
 const appurl = process.env.APP_URL;
 
-const bot = new Bot(token);
-bot.setWebHook(appurl + token);
+let bot;
+
+if (isProduction) {
+    bot = new Bot(token);
+    bot.setWebHook(process.env.HEROKU_URL + bot.token);
+} else {
+    bot = new Bot(token, { polling: true });
+    bot.deleteWebHook();
+}
 
 console.log('Bot server started in the ' + process.env.NODE_ENV + ' mode');
 
@@ -103,7 +111,15 @@ async function startHandler(userId) {
     })
   };
 
-  bot.sendMessage(userId, "Привет! Это хорошо посидели бот :)", options);
+  const welcomeMessage =
+    "Привет! Это хорошо посидели бот. 😎\n\n" +
+
+    "Бот помогает разобраться кто, кому и сколько должен после того как хорошо посидели.\n" +
+    "Подразумевается, что суммарный счет делится поровну.\n\n" +
+
+    "Вопросы и предложения: @vadimcpp\n" +
+
+  bot.sendMessage(userId, welcomeMessage, options);
 }
 
 async function resetHandler(userId, coffer) {
@@ -246,9 +262,9 @@ async function messageHandler(userId, text) {
     const options = {
       reply_markup: JSON.stringify({
         inline_keyboard: [
-          [ { text: "Добавить ещё", callback_data: "resume" } ],
-          [ { text: "Расчет", callback_data: "finish" } ],
-          [ { text: "Сброс", callback_data: "reset" } ]
+          [ { text: "👤Добавить ещё", callback_data: "resume" } ],
+          [ { text: "💰Расчет", callback_data: "finish" } ],
+          [ { text: "❌Сброс", callback_data: "reset" } ]
         ]
       })
     };
