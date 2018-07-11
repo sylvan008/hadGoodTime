@@ -4,7 +4,6 @@ const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
 const isProduction = process.env.NODE_ENV === 'production';
-const appurl = process.env.APP_URL;
 
 let bot;
 
@@ -117,7 +116,7 @@ async function startHandler(userId) {
     "Бот помогает разобраться кто, кому и сколько должен после того как хорошо посидели.\n" +
     "Подразумевается, что суммарный счет делится поровну.\n\n" +
 
-    "Вопросы и предложения: @vadimcpp\n" +
+    "Вопросы и предложения: @vadimcpp\n";
 
   bot.sendMessage(userId, welcomeMessage, options);
 }
