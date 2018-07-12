@@ -51,6 +51,9 @@ bot.on('message', (msg) => {
     if (args[0] === '/start') {
       startHandler(userId);
 
+    } else if (args[0] === '/resume') {
+      resumeHandler(userId);
+
     } else if (args[0] === '/reset') {
       resetHandler(userId, coffer);
 
@@ -82,11 +85,8 @@ bot.on('callback_query', async (msg) => {
   }
 
   if (text === 'resume') {
-    coffer = await db.getCoffer(userId);
-    coffer.state = state.ENTER_NAME;
-    await db.putCoffer(userId, coffer);
+    resumeHandler(userId);
 
-    bot.sendMessage(userId, 'Введите имя следующего участника');
     bot.answerCallbackQuery(msg.id);
   }
 
@@ -297,6 +297,14 @@ async function messageHandler(userId, text) {
 
     return message;
   }
+}
+
+async function resumeHandler(userId) {
+  const coffer = await db.getCoffer(userId);
+  coffer.state = state.ENTER_NAME;
+  await db.putCoffer(userId, coffer);
+
+  bot.sendMessage(userId, 'Введите имя следующего участника');
 }
 
 module.exports = bot;
