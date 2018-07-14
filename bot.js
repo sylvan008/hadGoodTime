@@ -229,10 +229,10 @@ async function finishHandler(userId) {
           recipient.delta += payment;
           payer.delta -= payment;
 
-          message += payer.name + " -> " + recipient.name + "  $ " + payment + "\n";
+          message += payer.name + " → " + recipient.name + "  💸 " + payment + "\n";
 
           // логируем платеж
-          console.log(payer.name + " -> " + recipient.name + "  $ " + payment);
+          console.log(payer.name + " → " + recipient.name + "  💸 " + payment);
         }
       }
     }
