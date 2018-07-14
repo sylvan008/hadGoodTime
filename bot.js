@@ -51,8 +51,8 @@ bot.on('message', (msg) => {
     if (args[0] === '/start') {
       startHandler(userId);
 
-    } else if (args[0] === '/resume') {
-      resumeHandler(userId);
+    } else if (args[0] === '/addperson') {
+      addPerson(userId);
 
     } else if (args[0] === '/reset') {
       resetHandler(userId, coffer);
@@ -84,8 +84,8 @@ bot.on('callback_query', async (msg) => {
     bot.answerCallbackQuery(msg.id);
   }
 
-  if (text === 'resume') {
-    resumeHandler(userId);
+  if (text === 'addperson') {
+    addPerson(userId);
 
     bot.answerCallbackQuery(msg.id);
   }
@@ -261,7 +261,7 @@ async function messageHandler(userId, text) {
     const options = {
       reply_markup: JSON.stringify({
         inline_keyboard: [
-          [ { text: "👤Добавить ещё", callback_data: "resume" } ],
+          [ { text: "👤Добавить ещё", callback_data: "addperson" } ],
           [ { text: "💰Расчет", callback_data: "finish" } ],
           [ { text: "❌Сброс", callback_data: "reset" } ]
         ]
@@ -299,7 +299,7 @@ async function messageHandler(userId, text) {
   }
 }
 
-async function resumeHandler(userId) {
+async function addPerson(userId) {
   const coffer = await db.getCoffer(userId);
   coffer.state = state.ENTER_NAME;
   await db.putCoffer(userId, coffer);
