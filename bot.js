@@ -4,7 +4,6 @@ const state = require('./data/state');
 
 const token = process.env.BOT_ACCESS_TOKEN;
 const isProduction = process.env.NODE_ENV === 'production';
-const appurl = process.env.APP_URL;
 
 let bot;
 
@@ -52,6 +51,9 @@ bot.on('message', (msg) => {
     if (args[0] === '/start') {
       startHandler(userId);
 
+    } else if (args[0] === '/resume') {
+      resumeHandler(userId);
+
     } else if (args[0] === '/reset') {
       resetHandler(userId, coffer);
 
@@ -83,11 +85,8 @@ bot.on('callback_query', async (msg) => {
   }
 
   if (text === 'resume') {
-    coffer = await db.getCoffer(userId);
-    coffer.state = state.ENTER_NAME;
-    await db.putCoffer(userId, coffer);
+    resumeHandler(userId);
 
-    bot.sendMessage(userId, 'Введите имя следующего участника');
     bot.answerCallbackQuery(msg.id);
   }
 
@@ -117,7 +116,7 @@ async function startHandler(userId) {
     "Бот помогает разобраться кто, кому и сколько должен после того как хорошо посидели.\n" +
     "Подразумевается, что суммарный счет делится поровну.\n\n" +
 
-    "Вопросы и предложения: @vadimcpp\n" +
+    "Вопросы и предложения: @vadimcpp\n";
 
   bot.sendMessage(userId, welcomeMessage, options);
 }
@@ -298,6 +297,14 @@ async function messageHandler(userId, text) {
 
     return message;
   }
+}
+
+async function resumeHandler(userId) {
+  const coffer = await db.getCoffer(userId);
+  coffer.state = state.ENTER_NAME;
+  await db.putCoffer(userId, coffer);
+
+  bot.sendMessage(userId, 'Введите имя следующего участника');
 }
 
 module.exports = bot;
